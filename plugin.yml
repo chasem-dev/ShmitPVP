@@ -1,0 +1,17 @@
+#name, main, version and api are required
+name: ShmitPVP
+main: com\shmozo\shmitpvp\ShmitPVP
+version: 1.0.0
+api: [3.0.0-ALPHA7]
+
+load: POSTWORLD
+author: Xwaffle, Proxying
+description: Core ShmitPVP plugin.
+website: https://www.shmozo.com
+commands:
+ debug:
+  description: debug command
+  usage: "/debug"
+ kit:
+  description: kit command
+  usage: "/kit"
