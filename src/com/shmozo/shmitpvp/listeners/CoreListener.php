@@ -10,6 +10,7 @@ namespace com\shmozo\shmitpvp\listeners;
 
 
 use com\shmozo\shmitpvp\ShmitPVP;
+use pocketmine\entity\Human;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
 use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\event\Listener;
@@ -25,11 +26,9 @@ class CoreListener implements Listener {
         $event->getPlayer()->sendMessage(TextFormat::YELLOW . "Welcome to " . TextFormat::AQUA . "ShmitPVP!");
         $event->getPlayer()->sendMessage(TextFormat::YELLOW . "Type " . TextFormat::RED . " /kit" . TextFormat::YELLOW . " to prepare for battle!");
         foreach ($event->getPlayer()->getLevel()->getEntities() as $entity) {
-            ShmitPVP::getInstance()->getLogger()->info($entity->getNameTag() . " ENTITY ALIVE");
             if ($entity->namedtag->offsetExists("NPC")) {
-                ShmitPVP::getInstance()->getLogger()->info($entity->getNameTag() . " Show To Player");
                 $entity->spawnTo($event->getPlayer());
-                $entity->setNameTagVisible();
+                $entity->setNameTagAlwaysVisible(true);
                 $entity->setNameTag($entity->getNameTag());
             }
         }
@@ -44,16 +43,35 @@ class CoreListener implements Listener {
             if ($player instanceof Player) {
                 if ($event->getEntity()->namedtag->offsetExists("NPC")) {
                     $event->setCancelled();
+                    if ($player->isCreative() && $player->isSneaking()) {
+                        /**
+                         * @var Human $human
+                         */
+                        $human = $event->getEntity();
+                        if ($human instanceof Human) {
+                            $player->sendMessage(TextFormat::RED . "Removed NPC " . $human->getNameTag());
+                            $human->getInventory()->clearAll();
+                            $human->kill();
+
+                        }
+                    } else {
+                        $kit = ShmitPVP::getInstance()->getKit($event->getEntity()->getNameTag());
+                        if ($kit != null) {
+                            $kit->applyTo($player);
+                        }
+                    }
                 }
             }
         }
     }
+
 
     public function onNPCDamaged(EntityDamageEvent $event) {
         if ($event->getEntity()->namedtag->offsetExists("NPC")) {
             $event->setCancelled();
         }
     }
+
 
     /**
      * @param PlayerQuitEvent $event

@@ -37,10 +37,6 @@ class ShmitPVP extends PluginBase {
      */
     public $cfg;
 
-    /**
-     * @var Location spawn;
-     */
-    public $spawn;
 
     /**
      * @var array
@@ -79,14 +75,6 @@ class ShmitPVP extends PluginBase {
         $this->cfg = new Config($this->getDataFolder() . "config.yml", Config::YAML);
         $this->loadKits();
 
-        $x = $this->cfg->getNested("spawn.x", 0);
-        $y = $this->cfg->getNested("spawn.y", 0);
-        $z = $this->cfg->getNested("spawn.z", 0);
-        $yaw = $this->cfg->getNested("spawn.yaw", 0);
-        $pitch = $this->cfg->getNested("spawn.pitch", 0);
-        $this->spawn = new Location($x, $y, $z, $yaw, $pitch);
-
-        $this->getLogger()->info("SPAWN SET TO: " . strval($this->spawn));
 
     }
 
@@ -116,17 +104,14 @@ class ShmitPVP extends PluginBase {
 
         $nbt->Pos = new ListTag("Pos", [
 
-            new DoubleTag("", $loc->getX()),
-            new DoubleTag("", $loc->getY()),
-            new DoubleTag("", $loc->getZ())
-
+            new DoubleTag("X", $loc->getX()),
+            new DoubleTag("Y", $loc->getY()),
+            new DoubleTag("Z", $loc->getZ())
         ]);
 
-        $nbt->Motion = new ListTag("Motion", [
-
-            new DoubleTag("", $motion->x),
-            new DoubleTag("", $motion->y),
-            new DoubleTag("", $motion->z)
+        $nbt->Rotation = new ListTag("Rotation", [
+            new DoubleTag("Yaw", $loc->getYaw()),
+            new DoubleTag("Pitch", $loc->getPitch())
 
         ]);
 
@@ -136,11 +121,12 @@ class ShmitPVP extends PluginBase {
         $nbt->offsetSet("NPC", true);
         $nbt->NPC = new StringTag("NPC", "true");
 
+        $nbt->Skin = new CompoundTag("Skin", ["Data" => new StringTag("Data", $player->getSkinData()), "Name" => new StringTag("Name", $player->getSkinId())]);
+
         $npc = Entity::createEntity("Human", $loc->getLevel(), $nbt);
         if ($npc instanceof Human) {
             $npc->canCollide = false;
-            $npc->setSkin($this->skinUtils->retrieveSkinData($player), "char");
-            //http://samueljh1.net/samcraft/img.php?url=http://i.imgur.com/PjTd2cj.png
+            $npc->setSkin($player->getSkinData(), $player->getName());
             $inv = $npc->getInventory();
             if ($player->getInventory()->getHelmet() != Item::get(Item::AIR))
                 $inv->setHelmet($player->getInventory()->getHelmet());
@@ -154,7 +140,8 @@ class ShmitPVP extends PluginBase {
                 $inv->setItemInHand($player->getInventory()->getItemInHand());
             $loc->getLevel()->addEntity($npc);
             $npc->teleport($player->getPosition(), $player->getYaw(), $player->getPitch());
-//            $npc->spawnToAll();
+            $npc->spawnToAll();
+            $npc->setNameTagAlwaysVisible(true);
         }
     }
 
@@ -176,26 +163,6 @@ class ShmitPVP extends PluginBase {
                         if ($sender instanceof Player) {
                             $this->spawnNPC($nameTag, $skin, $sender);
                             $sender->sendMessage("NPC SPAWNED");
-                        }
-                        return true;
-                        break;
-                    case "spawn":
-                        if ($sender instanceof Player) {
-                            $level = $sender->getLevel();
-                            if (!is_null($level)) {
-                                $this->cfg->setNested("spawn.x", $sender->getLocation()->getX());
-                                $this->cfg->setNested("spawn.y", $sender->getLocation()->getY());
-                                $this->cfg->setNested("spawn.z", $sender->getLocation()->getZ());
-                                $this->cfg->setNested("spawn.yaw", $sender->getLocation()->getYaw());
-                                $this->cfg->setNested("spawn.pitch", $sender->getLocation()->getPitch());
-                                $this->cfg->save();
-                                $sender->sendMessage("Spawn set!");
-                                $this->spawn = $sender->getLocation();
-                                return true;
-
-                            } else {
-                                $sender->sendMessage("Level Null");
-                            }
                         }
                         return true;
                         break;
@@ -234,16 +201,19 @@ class ShmitPVP extends PluginBase {
      * @param $kitName
      * @return Kit
      */
-    private function getKit($kitName) {
+    public function getKit($kitName) {
+        $kitName = strtolower(TextFormat::clean($kitName));
         /**
          * @var Kit $kit
          */
         foreach ($this->kits as $kit) {
-            if (strtolower($kit->kitName) == strtolower($kitName) || strtolower($kit->kitIdentifier) == strtolower($kitName)) {
+            $name = TextFormat::clean($kit->kitName);
+            $id = TextFormat::clean($kit->kitIdentifier);
+            if (strtolower($name) == $kitName || strtolower($id) == $kitName) {
                 return $kit;
             }
-        }
 
+        }
         return null;
     }
 

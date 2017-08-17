@@ -9,6 +9,7 @@
 namespace com\shmozo\shmitpvp;
 
 
+use pocketmine\item\Armor;
 use pocketmine\item\enchantment\Enchantment;
 use pocketmine\item\Item;
 use pocketmine\Player;
@@ -44,6 +45,10 @@ class Kit {
         $var = "kits." . $kitId . ".name";
         ShmitPVP::getInstance()->getLogger()->info($var);
         $this->kitName = ShmitPVP::getInstance()->cfg->getNested($var, $kitId);
+
+        $this->kitName = str_replace("&", "§", $this->kitName);
+
+
         ShmitPVP::getInstance()->getLogger()->info("   LOADED KIT: " . $this->kitName);
 
         foreach (ShmitPVP::getInstance()->cfg->getNested("kits." . $kitId . ".items") as $itemLine) {
@@ -121,7 +126,26 @@ class Kit {
          * @var Item $item
          */
         foreach ($this->items as $item) {
-            $player->sendMessage("GIVEN: " . $item->getName());
+
+            if ($item instanceof Armor) {
+                if (strpos($item->getName(), "Helmet") || strpos($item->getName(), "Cap")) {
+                    $player->getInventory()->setHelmet($item);
+                    continue;
+                } else if (strpos($item->getName(), "Chestplate") || strpos($item->getName(), "Tunic")) {
+                    $player->getInventory()->setChestplate($item);
+                    continue;
+                } else if (strpos($item->getName(), "Leggings") || strpos($item->getName(), "Pants")) {
+                    $player->getInventory()->setLeggings($item);
+                    continue;
+                } else if (strpos($item->getName(), "Boots")) {
+                    $player->getInventory()->setBoots($item);
+                    continue;
+                } else {
+                    $player->sendMessage($item->getName());
+                }
+            }
+
+
             $player->getInventory()->addItem($item);
         }
         $player->sendMessage(TextFormat::GREEN . "Applied " . TextFormat::YELLOW . $this->kitName . TextFormat::GREEN . " kit!");
